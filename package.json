@@ -1,21 +1,38 @@
 {
   "name": "koishi-plugin-command-interceptor",
-  "description": "Intercept instructions according to rules",
+  "description": "Intercept commands according to the rules",
   "version": "0.0.1",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "cd ../../ && yarn build command-interceptor",
+    "pub": "cd ../../ && yarn pub command-interceptor",
+    "fastPub": "cd ../../ && yarn bump -3 command-interceptor && yarn build command-interceptor && yarn pub command-interceptor",
+    "test": "node ./test/test.js"
+  },
   "files": [
     "lib",
     "dist"
   ],
+  "contributors": [
+    "pgnqukezrdxmhjso"
+  ],
+  "homepage": "https://github.com/pgnqukezrdxmhjso/koishi-plugin-command-interceptor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pgnqukezrdxmhjso/koishi-plugin-command-interceptor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pgnqukezrdxmhjso/koishi-plugin-command-interceptor/issues"
+  },
   "license": "MIT",
-  "scripts": {},
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "command",
+    "interceptor"
   ],
-  "devDependencies": {},
   "peerDependencies": {
     "koishi": "^4.18.5"
   }
