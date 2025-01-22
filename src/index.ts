@@ -1,4 +1,4 @@
-import { Context, h, Session } from "koishi";
+import { Context, Session } from "koishi";
 import type {
   Condition,
   ConditionGroup,
@@ -12,7 +12,8 @@ import type {
 export const name = "command-interceptor";
 
 export { Config } from "./Config";
-const isCmd = Symbol("command-interceptor-is-cmd");
+const IsCmd = Symbol("command-interceptor-is-cmd");
+const SourceCmd = Symbol("command-interceptor-source-cmd");
 export function apply(ctx: Context, config: Config) {
   const rules = [...(config.rules || [])].sort(
     (a, b) => a.priority - b.priority,
@@ -23,23 +24,27 @@ export function apply(ctx: Context, config: Config) {
       if (!argv.session) {
         return;
       }
-      argv.session[isCmd] = true;
-      let cmd = argv.command.name;
-      if (cmd === "help" && Array.isArray(argv.args)) {
-        const sourceCmd = getCmdByElements(
-          argv.session.app.config.prefix,
-          argv.session.elements,
-        );
-        if (argv.args?.[0] === sourceCmd) {
-          cmd = sourceCmd;
+      argv.session[IsCmd] = true;
+      let cmd: string[] = [argv.command.name];
+
+      if (cmd.includes("help")) {
+        if (Array.isArray(argv.args)) {
+          const sourceCmd: string[] = argv.session[SourceCmd];
+          if (sourceCmd?.includes(argv.args?.[0])) {
+            cmd = sourceCmd;
+          }
         }
+      } else if (argv.command._aliases) {
+        cmd.push(...Object.keys(argv.command._aliases));
+        argv.session[SourceCmd] = [...cmd];
       }
+
       const { whitelist, blacklist } = getRuleCommandList(argv.session, rules);
-      if (blacklist.includes(cmd)) {
+      if (blacklist.some((c) => cmd.includes(c))) {
         return "";
       }
 
-      if (whitelist.length > 0 && !whitelist.includes(cmd)) {
+      if (whitelist.length > 0 && whitelist.every((c) => !cmd.includes(c))) {
         return "";
       }
     },
@@ -49,7 +54,7 @@ export function apply(ctx: Context, config: Config) {
   ctx.on(
     "before-send",
     (_session, options) => {
-      if (!options?.session || options.session[isCmd]) {
+      if (!options?.session || options.session[IsCmd]) {
         return;
       }
       const { allowNotCommandMessage } = getRuleCommandList(
@@ -163,22 +168,4 @@ function getRuleCommandList(
     }
   }
   return { whitelist, blacklist, allowNotCommandMessage };
-}
-
-function cutElementsToFirstText(elements: h[]) {
-  elements = [...elements];
-  const firstTextIndex = elements.findIndex((ele) => ele.type === "text");
-  if (firstTextIndex > 0) {
-    elements.splice(0, firstTextIndex);
-  }
-  return elements;
-}
-
-function getCmdByElements(prefix: string[], elements: h[]): string {
-  elements = cutElementsToFirstText(elements);
-  let cmd: string = elements[0].attrs["content"]?.trim() + "";
-  prefix?.forEach((p: string) => {
-    cmd = cmd.replace(new RegExp("^" + p), "").trim();
-  });
-  return cmd.split(/\s/)[0];
 }
