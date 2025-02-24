@@ -79,6 +79,7 @@ const getConditionVal: {
   channelId: (session) => session.channelId,
   botId: (session) => session.bot.selfId,
   platform: (session) => session.platform,
+  content: (session) => session.content,
 };
 const verifyConditionLogic: {
   [K in ConditionLogic]: (val: any, conditionValue: ConditionValue) => boolean;
@@ -99,6 +100,14 @@ const verifyConditionLogic: {
       : verifyConditionLogic["equalTo"](val, conditionValue),
   notInclude: (val, conditionValue) =>
     !verifyConditionLogic["include"](val, conditionValue),
+  like: (val, conditionValue) => {
+    const sVal = val + "";
+    return typeof conditionValue === "object"
+      ? conditionValue.value.some((v) => sVal.includes(v))
+      : sVal.includes(conditionValue + "");
+  },
+  notLike: (val, conditionValue) =>
+    !verifyConditionLogic["like"](val, conditionValue),
 };
 function verifyCondition(session: Session, condition: Condition) {
   return verifyConditionLogic[condition.logic](
@@ -122,21 +131,18 @@ function verifyConditionGroups(
   session: Session,
   conditionGroups: ConditionGroup[],
 ) {
-  let logicStatus: boolean = null;
-  for (const conditionGroup of conditionGroups) {
-    const res = verifyConditionGroup(session, conditionGroup);
-    const isAnd = conditionGroup.externalLogic === "and";
-    logicStatus =
-      logicStatus === null
-        ? res
-        : isAnd
-          ? logicStatus && res
-          : logicStatus || res;
-    if (isAnd ? !logicStatus : logicStatus) {
-      break;
+  const logics: ConditionGroup[][] = [[]];
+
+  for (let i = conditionGroups.length - 1; i >= 0; i--) {
+    const item = conditionGroups[i];
+    logics[0].unshift(item);
+    if (item.externalLogic === "or" && i !== 0) {
+      logics.unshift([]);
     }
   }
-  return logicStatus;
+  return logics.some((groups) =>
+    groups.every((group) => verifyConditionGroup(session, group)),
+  );
 }
 
 function getRuleCommandList(

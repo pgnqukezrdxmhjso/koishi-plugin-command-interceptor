@@ -6,12 +6,15 @@ export type ConditionKey =
   | "groupId"
   | "channelId"
   | "botId"
-  | "platform";
+  | "platform"
+  | "content";
 export type ConditionLogic =
   | "equalTo"
   | "notEqualTo"
   | "include"
-  | "notInclude";
+  | "notInclude"
+  | "like"
+  | "notLike";
 export type ConditionValue = string | boolean | { value: string[] };
 
 export interface Condition {
@@ -58,7 +61,7 @@ export const Config: Schema<Config> = Schema.intersect([
             .role("radio")
             .default("whitelist"),
           priority: Schema.number().default(100),
-          command: Schema.array(Schema.string().required()),
+          command: Schema.array(Schema.string().required()).role("table"),
           notCommandMessage: Schema.boolean().default(false),
         }),
         Schema.object({
@@ -75,19 +78,22 @@ export const Config: Schema<Config> = Schema.intersect([
                     Schema.const("channelId").description("channelId"),
                     Schema.const("botId").description("botId"),
                     Schema.const("platform").description("platform"),
+                    Schema.const("content").description("content"),
                   ]).default("private"),
                   logic: Schema.union([
                     Schema.const("equalTo").description("equalTo"),
                     Schema.const("notEqualTo").description("notEqualTo"),
                     Schema.const("include").description("include"),
                     Schema.const("notInclude").description("notInclude"),
+                    Schema.const("like").description("like"),
+                    Schema.const("notLike").description("notLike"),
                   ]).default("equalTo"),
                   value: Schema.union([
                     Schema.string().description("string"),
                     Schema.const(true).description("true"),
                     Schema.const(false).description("false"),
                     Schema.object({
-                      value: Schema.array(Schema.string()),
+                      value: Schema.array(Schema.string()).role("table"),
                     }).description("array"),
                   ]).required(),
                 }),
